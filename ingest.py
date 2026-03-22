@@ -2,7 +2,7 @@ import pandas as pd
 import chromadb
 
 def ingest():
-    df = pd.read_csv('f1_glossary.csv')
+    df = pd.read_csv('../f1_glossary.csv')
     print("Successfully loaded the data")
     
 
