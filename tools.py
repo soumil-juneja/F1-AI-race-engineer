@@ -6,6 +6,11 @@ import requests
 import numpy as np
 import random
 import re
+import matplotlib.pyplot as plt
+import streamlit as st
+import fastf1.plotting
+
+fastf1.plotting.setup_mpl(mpl_timedelta_support=True, color_scheme='fastf1')
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -111,14 +116,13 @@ def get_driver_stint_history(year: int, location: str, session_type: str, driver
 BASE_URL = "https://api.openf1.org/v1"
 
 @tool
-@tool
 def get_live_summary(session_key: str = "latest") -> str:
     """
     Returns a comprehensive summary of the top 5 drivers from the active/test session.
     Includes: Position, Name, Tyre Compound, and Pit Stop Count.
     """
     # Hardcoded Bahrain 2024 (9472) for stable testing
-    session_key = "9472"
+    # session_key = "9472"
     
     try:
         pos_resp = requests.get(f"{BASE_URL}/positions?session_key={session_key}").json()
@@ -167,12 +171,13 @@ def get_live_summary(session_key: str = "latest") -> str:
     except Exception as e:
         return f"CRITICAL TOOL ERROR: {e}"
 
+@tool
 def calculate_pace_delta(driver_a: int, driver_b: int, window: int = 5) -> str:
     """
     Calculates the average pace difference between two drivers over the last X laps.
     Window defaults to 5 laps to filter out 'noise' like DRS or minor mistakes.
     """
-    session_key = "9472" # Hardcoded Bahrain 2024 for testing
+    # session_key = "9472" # Hardcoded Bahrain 2024 for testing
     try:
         resp_a = requests.get(f"{BASE_URL}/laps?session_key={session_key}&driver_number={driver_a}").json()
         resp_b = requests.get(f"{BASE_URL}/laps?session_key={session_key}&driver_number={driver_b}").json()
@@ -205,7 +210,7 @@ def predict_overtake_window(chaser: int, leader: int) -> str:
     Uses deterministic math to predict the exact lap a chaser will reach the leader.
     Formula: Current Gap / Average Closing Rate.
     """
-    session_key = "9472"
+    # session_key = "9472"
     try:
         int_resp = requests.get(f"{BASE_URL}/intervals?session_key={session_key}&driver_number={chaser}").json()
         if not isinstance(int_resp, list) or not int_resp:
@@ -213,7 +218,8 @@ def predict_overtake_window(chaser: int, leader: int) -> str:
         
         current_gap = int_resp[-1].get('gap_to_leader', 0) 
 
-        pace_report = calculate_pace_delta.run(driver_a=chaser, driver_b=leader, window=3)
+        
+        pace_report = calculate_pace_delta.invoke({"driver_a": chaser, "driver_b": leader, "window": 3})
         if "slower" in pace_report:
             return f"OVERTAKE UNLIKELY: Chaser (Driver {chaser}) is currently slower than the leader."
 
@@ -273,7 +279,57 @@ def simulate_strategic_chaos(chaser: int, leader: int, laps_remaining: int) -> s
     except Exception as e:
         return f"Simulation Failure: {e}"
 
+@tool
+def plot_quali_vs_race(year: int, location: str, driver_a: str, driver_b: str) -> str:
+    """
+    Plots a 2-panel comparison for two drivers: 
+    1. Their fastest Qualifying laps (Telemetry Speed Trace)
+    2. Their full Race pace (Lap-by-lap trend)
+    Useful for seeing if a driver is a 'Saturday Specialist' or a 'Sunday Racer'.
+    """
+    try:
+        quali = fastf1.get_session(year, location, 'Q')
+        race = fastf1.get_session(year, location, 'R')
 
+        quali.load(laps=True, telemetry=True)
+        race.load(laps=True, telemetry=False)
+
+        fig, (ax_quali, ax_race) = plt.subplots(2, 1, figsize=(10, 10), gridspec_kw={'height_ratios': [1, 1]})
+        fig.patch.set_facecolor('#15151e')
+
+        # --- QUALI PLOT ---
+        fastest_a = quali.laps.pick_driver(driver_a).pick_fastest().get_telemetry().add_distance()
+        fastest_b = quali.laps.pick_driver(driver_b).pick_fastest().get_telemetry().add_distance()
+        
+        ax_quali.plot(fastest_a['Distance'], fastest_a['Speed'], color='white', label=f"{driver_a} (Quali)")
+        ax_quali.plot(fastest_b['Distance'], fastest_b['Speed'], color='red', label=f"{driver_b} (Quali)")
+        ax_quali.set_title(f"Qualifying: Fastest Lap Speed Trace", color='white')
+        ax_quali.set_ylabel("Speed (km/h)", color='white')
+        ax_quali.legend()
+
+        # --- RACE PLOT ---
+        race_laps_a = race.laps.pick_driver(driver_a).pick_quicklaps()
+        race_laps_b = race.laps.pick_driver(driver_b).pick_quicklaps()
+        
+        ax_race.plot(race_laps_a['LapNumber'], race_laps_a['LapTime'], color='white', alpha=0.6, label=driver_a)
+        ax_race.plot(race_laps_b['LapNumber'], race_laps_b['LapTime'], color='red', alpha=0.6, label=driver_b)
+        ax_race.set_title(f"Race: Full Session Pace Trend", color='white')
+        ax_race.set_ylabel("Lap Time", color='white')
+        ax_race.set_xlabel("Lap Number", color='white')
+        ax_race.legend()
+
+        for ax in [ax_quali, ax_race]:
+            ax.set_facecolor('#15151e')
+            ax.tick_params(colors='white')
+            for spine in ax.spines.values(): spine.set_color('white')
+
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        return f"SUCCESS: Visualized Quali vs Race comparison for {driver_a} and {driver_b} at {location} {year}."
+
+    except Exception as e:
+        return f"Comparison Plotting Error: {e}"
 
 # --- THE REGISTRY ---
 # Expose this list so app.py can import it
@@ -283,6 +339,8 @@ F1_TOOLS = [
     get_driver_stint_history,
     get_live_summary,
     calculate_pace_delta,
-    simulate_strategic_chaos
+    predict_overtake_window,
+    simulate_strategic_chaos,
+    plot_quali_vs_race
 ]
 
