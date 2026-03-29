@@ -13,7 +13,7 @@ An autonomous, agentic system designed for real-time motorsport analytics, strat
 
 ---
 
-## 🛠️ Specialized Toolset & Engineering Logic
+### 🛠️ Specialized Toolset & Engineering Logic
 
 The system orchestrates a suite of custom-built tools designed to solve specific motorsport engineering challenges. Instead of simple text generation, the agent executes Python-based logic to provide grounded, quantitative answers.
 
@@ -21,7 +21,19 @@ The system orchestrates a suite of custom-built tools designed to solve specific
 * **Engine:** LangChain + ChromaDB (Vector Store).
 * **Logic:** Performs a semantic similarity search across vectorized PDF documents of the **2026 FIA Technical Regulations**. It retrieves specific clauses on Power Unit energy recovery ($MGU-K$) and Aerodynamic "X-mode/Z-mode" to ensure strategy advice is regulation-compliant.
 
-### ⏱️ `calculate_pace_delta` (Live Telemetry)
+### 🏁 `get_session_summary` (Static Data)
+* **Data Source:** FastF1 (Historical/Static).
+* **Logic:** Retrieves "Cold Data" from completed sessions, including final race classifications, qualifying positions, and driver lineups. It serves as the primary ground-truth source for post-race debriefs and performance benchmarking.
+
+### 🛞 `get_driver_stint_history` (Strategy Tracker)
+* **Data Source:** FastF1 (Stint/Tire Data).
+* **Logic:** Extracts high-resolution historical data on a driver's tire usage, pit stop intervals, and compound longevity. This tool allows the agent to identify "offset" strategies and predict when a driver's pace will drop due to tire degradation.
+
+### 📡 `get_live_summary` (Real-Time Pulse)
+* **Data Source:** OpenF1 API (Live).
+* **Logic:** Provides a high-density "Snapshot" of the current leaderboard. It pulls real-time data on the Top 5 drivers, including current interval gaps, active tire compounds, and total pit stops made, ensuring the agent's strategy advice is synchronized with the live race state.
+
+### ⏱️ `calculate_pace_delta` (Telemetry Analytics)
 * **Engine:** OpenF1 API (REST).
 * **Logic:** Ingests the last 5–10 laps of telemetry for any two specified drivers. It calculates a Moving Average Lap Time and identifies the **Closing Rate ($m/s$)** to determine if a chasing driver is genuinely faster or simply benefiting from a temporary tow.
 
