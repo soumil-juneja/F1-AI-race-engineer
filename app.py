@@ -15,8 +15,71 @@ from tools import F1_TOOLS
 
 # --- UI SETUP ---
 st.set_page_config(page_title="F1 Pit Wall AI", page_icon="🏎️", layout="wide")
-st.title("🏎️ F1 AI Race Engineer")
-st.markdown("Ask me about race results, driver stints, or 2026 regulations.")
+
+neumorphic_css = """
+<style>
+    /* Global Font and Background */
+    html, body, [class*="css"] {
+        font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif !important;
+        background-color: #1a1a1a !important;
+        color: #FFD700 !important;
+    }
+    
+    .stApp {
+        background-color: #1a1a1a !important;
+    }
+
+    /* Headers */
+    h1, h2, h3 {
+        color: #E10600 !important;
+        border-bottom: none;
+        padding-bottom: 10px;
+        font-weight: 800 !important;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    /* Chat Input Box */
+    div[data-testid="stChatInput"] {
+        background-color: #1a1a1a !important;
+        border: none !important;
+        border-radius: 20px !important;
+        box-shadow: inset 5px 5px 10px #101010, inset -5px -5px 10px #242424 !important;
+        padding: 5px;
+    }
+    div[data-testid="stChatInput"] textarea {
+        color: #FFD700 !important;
+    }
+
+    /* Chat Messages */
+    div[data-testid="stChatMessage"] {
+        background-color: #1a1a1a !important;
+        border: none !important;
+        border-radius: 20px !important;
+        padding: 20px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 8px 8px 16px #101010, -8px -8px 16px #242424 !important;
+    }
+
+    /* Avatars */
+    div[data-testid="stChatMessageAvatarUser"], div[data-testid="stChatMessageAvatarAssistant"] {
+        border-radius: 50% !important;
+        box-shadow: 3px 3px 6px #101010, -3px -3px 6px #242424 !important;
+    }
+    
+    /* Code blocks / data outputs */
+    pre, code {
+        background-color: #151515 !important;
+        color: #D4AF37 !important;
+        border: none !important;
+        border-radius: 10px !important;
+        box-shadow: inset 3px 3px 6px #0b0b0b, inset -3px -3px 6px #1f1f1f !important;
+    }
+</style>
+"""
+st.markdown(neumorphic_css, unsafe_allow_html=True)
+
+st.title("🏎️ F1 Pit Wall Dashboard")
+st.markdown("**STATUS: ACTIVE** | Query race results, driver stints, or 2026 regulations.")
 
 # --- AGENT SETUP ---
 # Initialize the Gemini model

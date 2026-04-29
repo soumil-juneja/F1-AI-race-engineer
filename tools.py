@@ -172,7 +172,7 @@ def get_live_summary(session_key: str = "latest") -> str:
         return f"CRITICAL TOOL ERROR: {e}"
 
 @tool
-def calculate_pace_delta(driver_a: int, driver_b: int, window: int = 5) -> str:
+def calculate_pace_delta(driver_a: int, driver_b: int, window: int = 5, session_key: str = "latest") -> str:
     """
     Calculates the average pace difference between two drivers over the last X laps.
     Window defaults to 5 laps to filter out 'noise' like DRS or minor mistakes.
@@ -205,7 +205,7 @@ def calculate_pace_delta(driver_a: int, driver_b: int, window: int = 5) -> str:
         return f"Pace Analysis Failure: {e}"
 
 @tool
-def predict_overtake_window(chaser: int, leader: int) -> str:
+def predict_overtake_window(chaser: int, leader: int, session_key: str = "latest") -> str:
     """
     Uses deterministic math to predict the exact lap a chaser will reach the leader.
     Formula: Current Gap / Average Closing Rate.
@@ -219,7 +219,7 @@ def predict_overtake_window(chaser: int, leader: int) -> str:
         current_gap = int_resp[-1].get('gap_to_leader', 0) 
 
         
-        pace_report = calculate_pace_delta.invoke({"driver_a": chaser, "driver_b": leader, "window": 3})
+        pace_report = calculate_pace_delta.invoke({"driver_a": chaser, "driver_b": leader, "window": 3, "session_key": session_key})
         if "slower" in pace_report:
             return f"OVERTAKE UNLIKELY: Chaser (Driver {chaser}) is currently slower than the leader."
 
@@ -236,7 +236,7 @@ def predict_overtake_window(chaser: int, leader: int) -> str:
         return f"Predictor Failure: {e}"
 
 @tool
-def simulate_strategic_chaos(chaser: int, leader: int, laps_remaining: int) -> str:
+def simulate_strategic_chaos(chaser: int, leader: int, laps_remaining: int, session_key: str = "latest") -> str:
     """
     The Strategist: A Monte Carlo simulation (1000 iterations) that models 
     stochastic lap variance and 'Black Swan' events like Safety Cars and DNFs.
@@ -244,14 +244,24 @@ def simulate_strategic_chaos(chaser: int, leader: int, laps_remaining: int) -> s
     PROB_SAFETY_CAR = 0.015 
     PROB_DNF = 0.005        
     
-
-    base_gap = 2.5 
-    avg_closing_rate = 0.35 
-    
     simulations = 1000
     overtakes, black_swans = 0, 0
 
     try:
+        # Fetch actual gap
+        int_resp = requests.get(f"{BASE_URL}/intervals?session_key={session_key}&driver_number={chaser}").json()
+        if not isinstance(int_resp, list) or not int_resp:
+            return "ERROR: Could not retrieve current interval data for simulation."
+        base_gap = int_resp[-1].get('gap_to_leader', 2.5)
+        
+        # Fetch actual pace delta
+        pace_report = calculate_pace_delta.invoke({"driver_a": chaser, "driver_b": leader, "window": 3, "session_key": session_key})
+        match = re.search(r"is (\d+\.\d+)s faster", pace_report)
+        if match:
+            avg_closing_rate = float(match.group(1))
+        else:
+            return "ANALYSIS FAILED: Could not establish a stable closing rate for simulation."
+
         for _ in range(simulations):
             sim_gap = base_gap
             for lap in range(int(laps_remaining)):

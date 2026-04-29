@@ -63,7 +63,11 @@ The system orchestrates a suite of custom-built tools designed to solve specific
 * **Data Science:** NumPy (Stochastic Modeling), Pandas, Matplotlib
 * **Databases:** ChromaDB (Vector Store), FastF1 (Historical Cache)
 * **APIs:** OpenF1 (Live Telemetry), FastF1 (Historical Data)
+<<<<<<< HEAD
 * **Requirement:** Python 3.10+, Google Gemini API Key
+=======
+* **Interface:** Streamlit 
+>>>>>>> 8723d28 (Update UI to Dark Neumorphic design and fix tool simulation bugs)
 
 ## 📦 Installation & Setup
 
